@@ -13,17 +13,27 @@ import {
 import { Link as RouterLink } from "react-router-dom";
 import { withRouter } from "react-router";
 import { useQuery } from "react-query";
+import fetch from "./fetch";
 
 function Character(props) {
-  const { isLoading, error, data } = useQuery("character", () =>
-    fetch(`https://swapi.co/api/characters/${props.match.params.characterId}`)
+  const characterId = props.match.params.characterId;
+  const { status, error, data } = useQuery(`character-${characterId}`, () =>
+    fetch(`https://swapi.co/api/people/${characterId}/`)
   );
 
-  if (isLoading) return <p>Loading...</p>;
-  if (error) return <p>Error :(</p>;
+  if (status === "loading") return <p>Loading...</p>;
+  if (status === "error") return <p>Error :(</p>;
+
+  console.log({ data, status, error });
+  const homeworldUrlParts = data.homeworld.split("/").filter(Boolean);
+  const homeworldId = homeworldUrlParts[homeworldUrlParts.length - 1];
+
+  if (status !== "success") {
+    return null;
+  }
   return (
     <div>
-      <Typography variant="h2">{data.person.name}</Typography>
+      <Typography variant="h2">{data.name}</Typography>
       <TableContainer component={Paper} style={{ maxWidth: "400px" }}>
         <Table size="small" aria-label="simple table">
           <TableHead>
@@ -35,44 +45,75 @@ function Character(props) {
           <TableBody>
             <TableRow>
               <TableCell>Born</TableCell>
-              <TableCell>{data.person.birthYear}</TableCell>
+              <TableCell>{data.birth_year}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Eyes</TableCell>
-              <TableCell>{data.person.eyeColor}</TableCell>
+              <TableCell>{data.eye_color}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Hair</TableCell>
-              <TableCell>{data.person.hairColor}</TableCell>
+              <TableCell>{data.hair_color}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Height</TableCell>
-              <TableCell>{data.person.height}</TableCell>
+              <TableCell>{data.height}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Mass</TableCell>
-              <TableCell>{data.person.mass}</TableCell>
+              <TableCell>{data.mass}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Homeworld</TableCell>
-              <TableCell>{data.person.homeworld.name}</TableCell>
+              <TableCell>
+                <Homeworld id={homeworldId} />
+              </TableCell>
             </TableRow>
           </TableBody>
         </Table>
       </TableContainer>
       <br />
       <Typography variant="h4">Films</Typography>
-      {data.person.filmConnection.films.map(film => (
-        <article key={film.id}>
-          <Link component={RouterLink} to={`/films/${film.id}`}>
-            <Typography variant="h6">
-              {film.episodeID}. {film.title}
-            </Typography>
-          </Link>
-        </article>
-      ))}
+      {data.films.map(film => {
+        const filmUrlParts = film.split("/").filter(Boolean);
+        const filmId = filmUrlParts[filmUrlParts.length - 1];
+        return <Film id={filmId} key={`Film-${filmId}`} />;
+      })}
     </div>
   );
+}
+
+function Film(props) {
+  const { id } = props;
+  const { data, status, error } = useQuery(`film-${id}`, () =>
+    fetch(`https://swapi.co/api/films/${id}/`)
+  );
+
+  if (status !== "success") {
+    return null;
+  }
+  return (
+    <article key={id}>
+      <Link component={RouterLink} to={`/films/${id}`}>
+        <Typography variant="h6">
+          {data.episode_id}. {data.title}
+        </Typography>
+      </Link>
+    </article>
+  );
+}
+
+function Homeworld(props) {
+  const { id } = props;
+  const { data, status } = useQuery(`homeworld-${id}`, () =>
+    fetch(`https://swapi.co/api/planets/${id}/`)
+  );
+
+  if (status !== "success") {
+    return null;
+  }
+
+  return data.name;
 }
 
 export default withRouter(Character);
