@@ -6,8 +6,9 @@ import { useQuery } from "react-query";
 import fetch from "./fetch";
 
 function Film(props) {
-  const { data, status, error } = useQuery("film", () =>
-    fetch(`https://swapi.co/api/films/${props.match.params.filmId}/`)
+  const filmId = props.match.params.filmId;
+  const { data, status, error } = useQuery(`film-${filmId}`, () =>
+    fetch(`https://swapi.co/api/films/${filmId}/`)
   );
 
   if (status === "loading") return <p>Loading...</p>;
